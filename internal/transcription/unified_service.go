@@ -59,10 +59,9 @@ func (u *UnifiedTranscriptionService) Initialize(ctx context.Context) error {
 		return fmt.Errorf("failed to create output directory: %w", err)
 	}
 
-	// Initialize all registered models
-	if err := u.registry.InitializeModels(ctx); err != nil {
-		return fmt.Errorf("failed to initialize models: %w", err)
-	}
+	// Skip automatic model initialization for faster startup
+	// Models will be initialized lazily on first use
+	logger.Info("Models will be initialized on first use (lazy loading)")
 
 	logger.Info("Unified transcription service initialized successfully")
 	return nil

@@ -85,45 +85,89 @@ func RegisterCompositeAdapter(modelID string, adapter interfaces.CompositeAdapte
 }
 
 // GetTranscriptionAdapter retrieves a transcription adapter by ID
+// and ensures it's ready to use (lazy initialization)
 func (r *ModelRegistry) GetTranscriptionAdapter(modelID string) (interfaces.TranscriptionAdapter, error) {
 	r.mu.RLock()
-	defer r.mu.RUnlock()
+	adapter, exists := r.transcriptionAdapters[modelID]
+	r.mu.RUnlock()
 
-	if adapter, exists := r.transcriptionAdapters[modelID]; exists {
+	if exists {
+		// Lazy initialization: prepare environment on first use
+		ctx := context.Background()
+		if err := adapter.PrepareEnvironment(ctx); err != nil {
+			logger.Warn("Failed to prepare adapter environment (will retry on next use)",
+				"model_id", modelID, "error", err)
+		}
 		return adapter, nil
 	}
 
 	// Check if it's available as a composite adapter
-	if adapter, exists := r.compositeAdapters[modelID]; exists {
-		return adapter, nil
+	r.mu.RLock()
+	compositeAdapter, exists := r.compositeAdapters[modelID]
+	r.mu.RUnlock()
+
+	if exists {
+		// Lazy initialization for composite adapter
+		ctx := context.Background()
+		if err := compositeAdapter.PrepareEnvironment(ctx); err != nil {
+			logger.Warn("Failed to prepare composite adapter environment (will retry on next use)",
+				"model_id", modelID, "error", err)
+		}
+		return compositeAdapter, nil
 	}
 
 	return nil, fmt.Errorf("transcription adapter not found: %s", modelID)
 }
 
 // GetDiarizationAdapter retrieves a diarization adapter by ID
+// and ensures it's ready to use (lazy initialization)
 func (r *ModelRegistry) GetDiarizationAdapter(modelID string) (interfaces.DiarizationAdapter, error) {
 	r.mu.RLock()
-	defer r.mu.RUnlock()
+	adapter, exists := r.diarizationAdapters[modelID]
+	r.mu.RUnlock()
 
-	if adapter, exists := r.diarizationAdapters[modelID]; exists {
+	if exists {
+		// Lazy initialization: prepare environment on first use
+		ctx := context.Background()
+		if err := adapter.PrepareEnvironment(ctx); err != nil {
+			logger.Warn("Failed to prepare diarization adapter environment (will retry on next use)",
+				"model_id", modelID, "error", err)
+		}
 		return adapter, nil
 	}
 
 	// Check if it's available as a composite adapter
-	if adapter, exists := r.compositeAdapters[modelID]; exists {
-		return adapter, nil
+	r.mu.RLock()
+	compositeAdapter, exists := r.compositeAdapters[modelID]
+	r.mu.RUnlock()
+
+	if exists {
+		// Lazy initialization for composite adapter
+		ctx := context.Background()
+		if err := compositeAdapter.PrepareEnvironment(ctx); err != nil {
+			logger.Warn("Failed to prepare composite adapter environment (will retry on next use)",
+				"model_id", modelID, "error", err)
+		}
+		return compositeAdapter, nil
 	}
 
 	return nil, fmt.Errorf("diarization adapter not found: %s", modelID)
 }
 
 // GetCompositeAdapter retrieves a composite adapter by ID
+// and ensures it's ready to use (lazy initialization)
 func (r *ModelRegistry) GetCompositeAdapter(modelID string) (interfaces.CompositeAdapter, error) {
 	r.mu.RLock()
-	defer r.mu.RUnlock()
+	adapter, exists := r.compositeAdapters[modelID]
+	r.mu.RUnlock()
 
-	if adapter, exists := r.compositeAdapters[modelID]; exists {
+	if exists {
+		// Lazy initialization: prepare environment on first use
+		ctx := context.Background()
+		if err := adapter.PrepareEnvironment(ctx); err != nil {
+			logger.Warn("Failed to prepare composite adapter environment (will retry on next use)",
+				"model_id", modelID, "error", err)
+		}
 		return adapter, nil
 	}
 
