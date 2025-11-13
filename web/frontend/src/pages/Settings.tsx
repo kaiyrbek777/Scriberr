@@ -16,8 +16,8 @@ import { SummaryTemplatesTable } from "../components/SummaryTemplatesTable";
 import { useAuth } from "../contexts/AuthContext";
 
 export function Settings() {
-  const [activeTab, setActiveTab] = useState("transcription");
-  const { getAuthHeaders } = useAuth();
+  const [activeTab, setActiveTab] = useState("account"); // Default to account (available to all)
+  const { getAuthHeaders, isAdmin } = useAuth();
   const [summaryDialogOpen, setSummaryDialogOpen] = useState(false);
   const [editingSummary, setEditingSummary] = useState<SummaryTemplate | null>(null);
   const [summaryRefresh, setSummaryRefresh] = useState(0);
@@ -114,10 +114,12 @@ export function Settings() {
             </TabsTrigger>
 							</TabsList>
 
-						{/* Transcription Tab */}
-						<TabsContent value="transcription" className="space-y-6">
-							<ProfileSettings />
-						</TabsContent>
+						{/* Transcription Tab (Admin Only) */}
+						{isAdmin && (
+							<TabsContent value="transcription" className="space-y-6">
+								<ProfileSettings />
+							</TabsContent>
+						)}
 
 						{/* Account Tab */}
 						<TabsContent value="account" className="space-y-6">
@@ -129,13 +131,16 @@ export function Settings() {
 							<APIKeySettings />
 						</TabsContent>
 
-          {/* LLMs Tab */}
-          <TabsContent value="llms" className="space-y-6">
-            <LLMSettings />
-          </TabsContent>
+          {/* LLMs Tab (Admin Only) */}
+          {isAdmin && (
+            <TabsContent value="llms" className="space-y-6">
+              <LLMSettings />
+            </TabsContent>
+          )}
 
-          {/* Summary Tab */}
-          <TabsContent value="summary" className="space-y-6">
+          {/* Summary Tab (Admin Only) */}
+          {isAdmin && (
+            <TabsContent value="summary" className="space-y-6">
             <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-4">
                 <div>
@@ -181,6 +186,7 @@ export function Settings() {
               }}
             />
           </TabsContent>
+          )}
 					</Tabs>
 				</div>
 			</div>

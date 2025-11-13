@@ -6,6 +6,8 @@ interface AuthContextType {
 	isAuthenticated: boolean;
 	requiresRegistration: boolean;
 	isInitialized: boolean;
+	userRole: string | null; // "user" or "admin"
+	isAdmin: boolean;
 	login: (token: string) => void;
 	logout: () => void;
 	getAuthHeaders: () => { Authorization?: string };
@@ -21,10 +23,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
 	const [token, setToken] = useState<string | null>(null);
 	const [isInitialized, setIsInitialized] = useState(false);
 	const [requiresRegistration, setRequiresRegistration] = useState(false);
-	
+	const [userRole, setUserRole] = useState<string | null>(null);
+
 	// Use refs to avoid re-creating intervals on every render
 	const tokenCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
 	const fetchWrapperSetupRef = useRef(false);
+
+	// Extract role from JWT token
+	const getRoleFromToken = useCallback((tokenToCheck: string): string | null => {
+		try {
+			const payload = JSON.parse(atob(tokenToCheck.split(".")[1]));
+			return payload.role || null;
+		} catch (error) {
+			console.error("Failed to extract role from token:", error);
+			return null;
+		}
+	}, []);
 
 	// Memoize expensive token expiry check
 	const isTokenExpired = useCallback((tokenToCheck: string): boolean => {
@@ -42,6 +56,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 	// Logout function
   const logout = useCallback(() => {
     setToken(null);
+    setUserRole(null);
     localStorage.removeItem("scriberr_auth_token");
     // Call logout endpoint to invalidate token server-side (optional)
     fetch("/api/v1/auth/logout", {
@@ -83,6 +98,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 								localStorage.removeItem("scriberr_auth_token");
 							} else {
 								setToken(savedToken);
+								setUserRole(getRoleFromToken(savedToken));
 							}
 						}
 					}
@@ -96,6 +112,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 						localStorage.removeItem("scriberr_auth_token");
 					} else {
 						setToken(savedToken);
+						setUserRole(getRoleFromToken(savedToken));
 					}
 				}
 			} finally {
@@ -104,13 +121,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
 		};
 
 		initializeAuth();
-  }, [isTokenExpired]);
+  }, [isTokenExpired, getRoleFromToken]);
 
 	const login = useCallback((newToken: string) => {
 		setToken(newToken);
+		setUserRole(getRoleFromToken(newToken));
 		localStorage.setItem("scriberr_auth_token", newToken);
 		setRequiresRegistration(false); // Clear registration requirement after successful login/registration
-	}, []);
+	}, [getRoleFromToken]);
 
 	// Helper: attempt to refresh JWT via cookie refresh token
 	const tryRefresh = useCallback(async (): Promise<string | null> => {
@@ -213,10 +231,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
 		isAuthenticated: !!token && isInitialized,
 		requiresRegistration,
 		isInitialized,
+		userRole,
+		isAdmin: userRole === "admin",
 		login,
 		logout,
 		getAuthHeaders,
-	}), [token, isInitialized, requiresRegistration, login, logout, getAuthHeaders]);
+	}), [token, isInitialized, requiresRegistration, userRole, login, logout, getAuthHeaders]);
 
 
 	return (

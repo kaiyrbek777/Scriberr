@@ -767,6 +767,99 @@ func (h *Handler) GetTrackProgress(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+// @Summary Simple transcription (cURL-friendly)
+// @Description Upload audio and transcribe with minimal parameters. Perfect for cURL.
+// @Tags transcription
+// @Accept multipart/form-data
+// @Produce json
+// @Param file formData file true "Audio file"
+// @Param language formData string false "Language code" default(auto)
+// @Param diarization formData boolean false "Enable speaker detection" default(false)
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/v1/transcription/simple [post]
+// @Security ApiKeyAuth
+// @Security BearerAuth
+func (h *Handler) SimpleTranscribe(c *gin.Context) {
+	// Parse audio file
+	file, header, err := c.Request.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Audio file required (use 'file' field)"})
+		return
+	}
+	defer file.Close()
+
+	// Create upload directory
+	uploadDir := h.config.UploadDir
+	if err := os.MkdirAll(uploadDir, 0755); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload directory"})
+		return
+	}
+
+	// Generate unique filename
+	jobID := uuid.New().String()
+	ext := filepath.Ext(header.Filename)
+	filename := fmt.Sprintf("%s%s", jobID, ext)
+	filePath := filepath.Join(uploadDir, filename)
+
+	// Save file
+	dst, err := os.Create(filePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
+		return
+	}
+	defer dst.Close()
+
+	if _, err = io.Copy(dst, file); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
+		return
+	}
+
+	// Parse simple parameters
+	language := c.PostForm("language")
+	diarization := c.PostForm("diarization") == "true"
+
+	// Use default parameters optimized for speed
+	title := header.Filename
+	params := models.WhisperXParams{
+		Model:       "base", // Fast model
+		Device:      "cpu",
+		BatchSize:   8,
+		ComputeType: "float32",
+		Diarize:     diarization,
+	}
+
+	if language != "" && language != "auto" {
+		params.Language = &language
+	}
+
+	// Create job record
+	job := models.TranscriptionJob{
+		ID:         jobID,
+		Title:      &title,
+		Status:     models.StatusPending,
+		AudioPath:  filePath,
+		Parameters: params,
+	}
+
+	if err := database.DB.Create(&job).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create job"})
+		return
+	}
+
+	// Submit to queue
+	h.taskQueue.SubmitJob(jobID)
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"job_id":  jobID,
+		"status":  "pending",
+		"message": "Transcription started",
+		"status_url": fmt.Sprintf("/api/v1/transcription/%s/status", jobID),
+	})
+}
+
 // @Summary Submit a transcription job
 // @Description Submit an audio file for transcription with WhisperX
 // @Tags transcription
