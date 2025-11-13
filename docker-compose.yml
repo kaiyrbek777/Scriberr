@@ -1,6 +1,9 @@
 services:
   scriberr:
-    image: ghcr.io/rishikanthc/scriberr:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: scriberr:local
     ports:
       - "8080:8080"
     volumes:
