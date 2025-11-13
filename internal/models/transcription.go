@@ -136,6 +136,7 @@ type User struct {
 	ID                       uint      `json:"id" gorm:"primaryKey"`
 	Username                 string    `json:"username" gorm:"uniqueIndex;not null;type:varchar(50)"`
 	Password                 string    `json:"-" gorm:"not null;type:varchar(255)"`
+	Role                     string    `json:"role" gorm:"not null;type:varchar(20);default:'user'"` // "user" or "admin"
 	DefaultProfileID         *string   `json:"default_profile_id,omitempty" gorm:"type:varchar(36)"`
 	AutoTranscriptionEnabled bool      `json:"auto_transcription_enabled" gorm:"not null;default:false"`
 	CreatedAt                time.Time `json:"created_at" gorm:"autoCreateTime"`

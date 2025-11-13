@@ -62,10 +62,10 @@ export function Login({ onLogin }: LoginProps) {
                     <ScriberrLogo onClick={() => navigate({ path: 'home' })} />
                 </div>
 					<h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-						Sign in to Scriberr
+						Sign in to Protocol Service
 					</h2>
 					<p className="mt-2 text-gray-600 dark:text-gray-400">
-						Access your audio transcription workspace
+						Access your transcription workspace
 					</p>
 				</div>
 

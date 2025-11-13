@@ -124,9 +124,9 @@ func SetupRoutes(handler *Handler, authService *auth.AuthService) *gin.Engine {
 			transcription.GET("/quick/:id", handler.GetQuickTranscriptionStatus)
 		}
 
-		// Profile routes (require authentication)
+		// Profile routes (require admin authentication)
 		profiles := v1.Group("/profiles")
-		profiles.Use(middleware.AuthMiddleware(authService))
+		profiles.Use(middleware.AdminOnlyMiddleware(authService))
 		{
 			profiles.GET("/", handler.ListProfiles)
 			profiles.POST("/", handler.CreateProfile)
@@ -146,27 +146,28 @@ func SetupRoutes(handler *Handler, authService *auth.AuthService) *gin.Engine {
 			user.PUT("/settings", handler.UpdateUserSettings)
 		}
 
-		// Admin routes (require authentication)
+		// Admin routes (require admin authentication)
 		admin := v1.Group("/admin")
-		admin.Use(middleware.AuthMiddleware(authService))
+		admin.Use(middleware.AdminOnlyMiddleware(authService))
 		{
+			admin.GET("/statistics", handler.GetAdminStatistics)
 			queue := admin.Group("/queue")
 			{
 				queue.GET("/stats", handler.GetQueueStats)
 			}
 		}
 
-		// LLM configuration routes (require authentication)
+		// LLM configuration routes (require admin authentication)
 		llm := v1.Group("/llm")
-		llm.Use(middleware.AuthMiddleware(authService))
+		llm.Use(middleware.AdminOnlyMiddleware(authService))
 		{
 			llm.GET("/config", handler.GetLLMConfig)
 			llm.POST("/config", handler.SaveLLMConfig)
 		}
 
-		// Summarization templates routes (require authentication)
+		// Summarization templates routes (require admin authentication)
 		summaries := v1.Group("/summaries")
-		summaries.Use(middleware.AuthMiddleware(authService))
+		summaries.Use(middleware.AdminOnlyMiddleware(authService))
 		{
 			summaries.GET("/", handler.ListSummaryTemplates)
 			summaries.POST("/", handler.CreateSummaryTemplate)

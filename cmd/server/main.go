@@ -29,9 +29,9 @@ var (
 	date    = "unknown"
 )
 
-// @title Scriberr API
+// @title Protocol Transcription API
 // @version 1.0
-// @description Audio transcription service using WhisperX
+// @description Audio transcription service for meeting protocols
 // @termsOfService http://swagger.io/terms/
 
 // @contact.name API Support
@@ -59,7 +59,7 @@ func main() {
 	flag.Parse()
 
 	if *showVersion {
-		fmt.Printf("Scriberr %s\n", version)
+		fmt.Printf("Protocol Transcription Service %s\n", version)
 		fmt.Printf("Commit: %s\n", commit)
 		fmt.Printf("Built: %s\n", date)
 		os.Exit(0)
@@ -67,7 +67,7 @@ func main() {
 
 	// Initialize structured logging first
 	logger.Init(os.Getenv("LOG_LEVEL"))
-	logger.Info("Starting Scriberr", "version", version)
+	logger.Info("Starting Protocol Transcription Service", "version", version)
 	
 	// Load configuration
 	logger.Startup("config", "Loading configuration")
@@ -88,13 +88,10 @@ func main() {
 	// Initialize unified transcription processor
 	logger.Startup("transcription", "Initializing transcription service")
 	unifiedProcessor := transcription.NewUnifiedJobProcessor()
-	
-	// Bootstrap embedded Python environment (for all adapters)
-	logger.Startup("python", "Preparing Python environment")
-	if err := unifiedProcessor.InitEmbeddedPythonEnv(); err != nil {
-		logger.Error("Failed to prepare Python environment", "error", err)
-		os.Exit(1)
-	}
+
+	// Skip Python environment initialization on startup for faster boot
+	// Python environment will be initialized on first transcription job
+	logger.Startup("python", "Python environment will be initialized on first use")
 
 	// Initialize quick transcription service
 	logger.Startup("quick-transcription", "Initializing quick transcription service")
@@ -133,7 +130,7 @@ func main() {
 	
 	// Give the server a moment to start
 	time.Sleep(100 * time.Millisecond)
-	logger.Info("Scriberr is ready", 
+	logger.Info("Protocol Transcription Service is ready",
 		"url", fmt.Sprintf("http://%s:%s", cfg.Host, cfg.Port))
 	logger.Debug("API documentation available at /swagger/index.html")
 

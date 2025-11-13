@@ -71,6 +71,7 @@ type LoginResponse struct {
 	User  struct {
 		ID       uint   `json:"id"`
 		Username string `json:"username"`
+		Role     string `json:"role"` // "user" or "admin"
 	} `json:"user"`
 }
 
@@ -1653,6 +1654,7 @@ func (h *Handler) Login(c *gin.Context) {
 	response := LoginResponse{Token: token}
 	response.User.ID = user.ID
 	response.User.Username = user.Username
+	response.User.Role = user.Role
 
 	logger.AuthEvent("login", req.Username, c.ClientIP(), true)
 	c.JSON(http.StatusOK, response)
@@ -1745,10 +1747,16 @@ func (h *Handler) Register(c *gin.Context) {
 		return
 	}
 
-	// Create user
+	// Create user - first user is admin, others are regular users
+	role := "admin" // First user is admin
+	if userCount > 0 {
+		role = "user"
+	}
+
 	user := models.User{
 		Username: req.Username,
 		Password: hashedPassword,
+		Role:     role,
 	}
 
 	if err := database.DB.Create(&user).Error; err != nil {
@@ -1774,6 +1782,7 @@ func (h *Handler) Register(c *gin.Context) {
 	response := LoginResponse{Token: token}
 	response.User.ID = user.ID
 	response.User.Username = user.Username
+	response.User.Role = user.Role
 
 	c.JSON(http.StatusCreated, response)
 }
@@ -2215,6 +2224,74 @@ func generateSecureAPIKey(length int) string {
 // @Security BearerAuth
 func (h *Handler) GetQueueStats(c *gin.Context) {
 	stats := h.taskQueue.GetQueueStats()
+	c.JSON(http.StatusOK, stats)
+}
+
+// @Summary Get admin statistics
+// @Description Get statistics for admin dashboard (total transcriptions, users, templates, etc.)
+// @Tags admin
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /api/v1/admin/statistics [get]
+// @Security BearerAuth
+func (h *Handler) GetAdminStatistics(c *gin.Context) {
+	// Count total transcriptions
+	var totalTranscriptions int64
+	database.DB.Model(&models.TranscriptionJob{}).Count(&totalTranscriptions)
+
+	// Count completed transcriptions
+	var completedTranscriptions int64
+	database.DB.Model(&models.TranscriptionJob{}).Where("status = ?", "completed").Count(&completedTranscriptions)
+
+	// Count failed transcriptions
+	var failedTranscriptions int64
+	database.DB.Model(&models.TranscriptionJob{}).Where("status = ?", "failed").Count(&failedTranscriptions)
+
+	// Count total users
+	var totalUsers int64
+	database.DB.Model(&models.User{}).Count(&totalUsers)
+
+	// Count templates
+	var totalTemplates int64
+	database.DB.Model(&models.SummaryTemplate{}).Count(&totalTemplates)
+
+	// Count total summaries generated
+	var totalSummaries int64
+	database.DB.Model(&models.Summary{}).Count(&totalSummaries)
+
+	// Count API keys
+	var totalAPIKeys int64
+	var activeAPIKeys int64
+	database.DB.Model(&models.APIKey{}).Count(&totalAPIKeys)
+	database.DB.Model(&models.APIKey{}).Where("is_active = ?", true).Count(&activeAPIKeys)
+
+	// Get recent transcriptions (last 7 days)
+	var recentTranscriptions int64
+	sevenDaysAgo := time.Now().AddDate(0, 0, -7)
+	database.DB.Model(&models.TranscriptionJob{}).Where("created_at >= ?", sevenDaysAgo).Count(&recentTranscriptions)
+
+	stats := map[string]interface{}{
+		"transcriptions": map[string]interface{}{
+			"total":     totalTranscriptions,
+			"completed": completedTranscriptions,
+			"failed":    failedTranscriptions,
+			"recent_7d": recentTranscriptions,
+		},
+		"users": map[string]interface{}{
+			"total": totalUsers,
+		},
+		"templates": map[string]interface{}{
+			"total": totalTemplates,
+		},
+		"summaries": map[string]interface{}{
+			"total": totalSummaries,
+		},
+		"api_keys": map[string]interface{}{
+			"total":  totalAPIKeys,
+			"active": activeAPIKeys,
+		},
+	}
+
 	c.JSON(http.StatusOK, stats)
 }
 
