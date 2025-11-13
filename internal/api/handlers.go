@@ -849,7 +849,10 @@ func (h *Handler) SimpleTranscribe(c *gin.Context) {
 	}
 
 	// Submit to queue
-	h.taskQueue.SubmitJob(jobID)
+	if err := h.taskQueue.EnqueueJob(jobID); err != nil {
+		logger.Error("Failed to enqueue job", "job_id", jobID, "error", err)
+		// Job is created in DB, scanner will pick it up
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
