@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { User, Settings as SettingsIcon, Key, Bot, FileText, Plus } from "lucide-react";
+import { User, Settings as SettingsIcon, Key, Bot, FileText, Plus, Cpu } from "lucide-react";
 import {
 	Tabs,
 	TabsContent,
@@ -11,6 +11,7 @@ import { ProfileSettings } from "../components/ProfileSettings";
 import { AccountSettings } from "../components/AccountSettings";
 import { APIKeySettings } from "../components/APIKeySettings";
 import { LLMSettings } from "../components/LLMSettings";
+import { STTModelSettings } from "../components/STTModelSettings";
 import { SummaryTemplateDialog, type SummaryTemplate } from "../components/SummaryTemplateDialog";
 import { SummaryTemplatesTable } from "../components/SummaryTemplatesTable";
 import { useAuth } from "../contexts/AuthContext";
@@ -71,7 +72,7 @@ export function Settings() {
 							onValueChange={setActiveTab}
 							className="space-y-4 sm:space-y-6"
 						>
-            <TabsList className="grid w-full grid-cols-5 items-center h-auto bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+            <TabsList className="grid w-full grid-cols-6 items-center h-auto bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
                             <TabsTrigger
                                 value="transcription"
                                 aria-label="Transcription"
@@ -80,6 +81,14 @@ export function Settings() {
 									<SettingsIcon className="h-4 w-4" />
 									<span className="hidden sm:inline">Transcription</span>
 								</TabsTrigger>
+                            <TabsTrigger
+                                value="stt-models"
+                                aria-label="STT Models"
+                                className="flex items-center justify-center gap-2 h-9 py-1.5 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-gray-900 dark:data-[state=active]:text-gray-100 text-gray-600 dark:text-gray-400 font-medium rounded-lg text-xs sm:text-sm"
+                            >
+								<Cpu className="h-4 w-4" />
+								<span className="hidden sm:inline">STT Models</span>
+							</TabsTrigger>
                             <TabsTrigger
                                 value="account"
                                 aria-label="Account"
@@ -118,6 +127,13 @@ export function Settings() {
 						{isAdmin && (
 							<TabsContent value="transcription" className="space-y-6">
 								<ProfileSettings />
+							</TabsContent>
+						)}
+
+						{/* STT Models Tab (Admin Only) */}
+						{isAdmin && (
+							<TabsContent value="stt-models" className="space-y-6">
+								<STTModelSettings />
 							</TabsContent>
 						)}
 
