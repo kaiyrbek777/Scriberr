@@ -835,12 +835,23 @@ func (h *Handler) SimpleTranscribe(c *gin.Context) {
 	}
 
 	// Create job record
+	// Get default STT model
+	var defaultModel models.STTModel
+	if err := database.DB.Where("is_default = ? AND is_active = ?", true, true).First(&defaultModel).Error; err != nil {
+		logger.Warn("No default STT model found, will use WhisperX", "error", err)
+	}
+
 	job := models.TranscriptionJob{
 		ID:         jobID,
 		Title:      &title,
 		Status:     models.StatusPending,
 		AudioPath:  filePath,
 		Parameters: params,
+	}
+
+	// Set STT model if found
+	if defaultModel.ID != 0 {
+		job.STTModelID = &defaultModel.ID
 	}
 
 	if err := database.DB.Create(&job).Error; err != nil {

@@ -24,6 +24,7 @@ type TranscriptionJob struct {
 	MergeStatus           string `json:"merge_status" gorm:"type:varchar(20);default:'none'"` // none, pending, processing, completed, failed
 	MergeError            *string `json:"merge_error,omitempty" gorm:"type:text"`
 	IndividualTranscripts *string `json:"individual_transcripts,omitempty" gorm:"type:text"` // JSON-serialized map[string]*string
+	STTModelID       *uint     `json:"stt_model_id,omitempty" gorm:"type:int"`                // Foreign key to STTModel
 	CreatedAt        time.Time `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt        time.Time `json:"updated_at" gorm:"autoUpdateTime"`
 
@@ -31,6 +32,7 @@ type TranscriptionJob struct {
 	Parameters WhisperXParams `json:"parameters" gorm:"embedded"`
 
 	// Relationships
+	STTModel        *STTModel        `json:"stt_model,omitempty" gorm:"foreignKey:STTModelID"`
 	MultiTrackFiles []MultiTrackFile `json:"multi_track_files,omitempty" gorm:"foreignKey:TranscriptionJobID"`
 }
 
