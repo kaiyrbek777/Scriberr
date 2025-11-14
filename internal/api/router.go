@@ -81,6 +81,13 @@ func SetupRoutes(handler *Handler, authService *auth.AuthService) *gin.Engine {
 			apiKeys.DELETE("/:id", handler.DeleteAPIKey)
 		}
 
+		// STT Models routes (require authentication, available to all users)
+		sttModels := v1.Group("/stt-models")
+		sttModels.Use(middleware.AuthMiddleware(authService))
+		{
+			sttModels.GET("/", handler.GetActiveSTTModels)
+		}
+
 		// Transcription routes (require authentication)
 		transcription := v1.Group("/transcription")
 		transcription.Use(middleware.AuthMiddleware(authService))
@@ -157,6 +164,14 @@ func SetupRoutes(handler *Handler, authService *auth.AuthService) *gin.Engine {
 			queue := admin.Group("/queue")
 			{
 				queue.GET("/stats", handler.GetQueueStats)
+			}
+			// STT Models management (admin only)
+			sttModels := admin.Group("/stt-models")
+			{
+				sttModels.GET("/", handler.GetSTTModels)
+				sttModels.POST("/", handler.CreateSTTModel)
+				sttModels.PUT("/:id", handler.UpdateSTTModel)
+				sttModels.DELETE("/:id", handler.DeleteSTTModel)
 			}
 		}
 

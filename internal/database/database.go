@@ -66,6 +66,7 @@ func Initialize(dbPath string) error {
 		&models.User{},
 		&models.APIKey{},
 		&models.TranscriptionProfile{},
+		&models.STTModel{},
 		&models.LLMConfig{},
 		&models.ChatSession{},
 		&models.ChatMessage{},
@@ -81,6 +82,27 @@ func Initialize(dbPath string) error {
 	// Add unique constraint for speaker mappings (transcription_job_id + original_speaker)
 	if err := DB.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_speaker_mappings_unique ON speaker_mappings(transcription_job_id, original_speaker)").Error; err != nil {
 		return fmt.Errorf("failed to create unique constraint for speaker mappings: %v", err)
+	}
+
+	// Create default WhisperX STT model if no models exist
+	var modelCount int64
+	if err := DB.Model(&models.STTModel{}).Count(&modelCount).Error; err != nil {
+		return fmt.Errorf("failed to count STT models: %v", err)
+	}
+
+	if modelCount == 0 {
+		defaultModel := models.STTModel{
+			Name:      "WhisperX (Local)",
+			Type:      models.STTModelTypeWhisperX,
+			BaseURL:   nil,
+			APIKey:    nil,
+			ModelName: nil,
+			IsActive:  true,
+			IsDefault: true,
+		}
+		if err := DB.Create(&defaultModel).Error; err != nil {
+			return fmt.Errorf("failed to create default STT model: %v", err)
+		}
 	}
 
 	return nil
