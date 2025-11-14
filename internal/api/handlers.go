@@ -1801,8 +1801,8 @@ func (h *Handler) GetRegistrationStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// @Summary Register initial admin user
-// @Description Register the initial admin user (only allowed when no users exist)
+// @Summary Register new user
+// @Description Register a new user. First user becomes admin, subsequent users are regular users.
 // @Tags auth
 // @Accept json
 // @Produce json
@@ -1812,18 +1812,6 @@ func (h *Handler) GetRegistrationStatus(c *gin.Context) {
 // @Failure 409 {object} map[string]string
 // @Router /api/v1/auth/register [post]
 func (h *Handler) Register(c *gin.Context) {
-	// Check if any users already exist
-	var userCount int64
-	if err := database.DB.Model(&models.User{}).Count(&userCount).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check existing users"})
-		return
-	}
-
-	if userCount > 0 {
-		c.JSON(http.StatusConflict, gin.H{"error": "Registration is not allowed. Admin user already exists"})
-		return
-	}
-
 	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: " + err.Error()})
@@ -1833,6 +1821,13 @@ func (h *Handler) Register(c *gin.Context) {
 	// Validate password confirmation
 	if req.Password != req.ConfirmPassword {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Passwords do not match"})
+		return
+	}
+
+	// Check if any users already exist to determine role
+	var userCount int64
+	if err := database.DB.Model(&models.User{}).Count(&userCount).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check existing users"})
 		return
 	}
 
