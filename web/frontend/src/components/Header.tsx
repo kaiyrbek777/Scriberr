@@ -28,7 +28,7 @@ interface HeaderProps {
 
 export function Header({ onFileSelect, onMultiTrackClick, onDownloadComplete }: HeaderProps) {
 	const { navigate } = useRouter();
-	const { logout } = useAuth();
+	const { logout, isAdmin } = useAuth();
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const videoFileInputRef = useRef<HTMLInputElement>(null);
 	const [isRecorderOpen, setIsRecorderOpen] = useState(false);
@@ -221,10 +221,12 @@ export function Header({ onFileSelect, onMultiTrackClick, onDownloadComplete }: 
 								<Home className="h-4 w-4" />
 								Home
 							</DropdownMenuItem>
-							<DropdownMenuItem onClick={handleSettingsClick} className="cursor-pointer">
-								<Settings className="h-4 w-4" />
-								Settings
-							</DropdownMenuItem>
+							{isAdmin && (
+								<DropdownMenuItem onClick={handleSettingsClick} className="cursor-pointer">
+									<Settings className="h-4 w-4" />
+									Settings
+								</DropdownMenuItem>
+							)}
 							<DropdownMenuItem onClick={handleLogout} className="cursor-pointer" variant="destructive">
 								<LogOut className="h-4 w-4" />
 								Logout
