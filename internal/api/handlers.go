@@ -79,7 +79,7 @@ type LoginResponse struct {
 type RegisterRequest struct {
 	Username        string `json:"username" binding:"required,min=3,max=50"`
 	Password        string `json:"password" binding:"required,min=6"`
-	ConfirmPassword string `json:"confirmPassword" binding:"required"`
+	ConfirmPassword string `json:"confirm_password" binding:"required"`
 }
 
 // RegistrationStatusResponse represents the registration status
