@@ -1,5 +1,3 @@
-Вот полное содержимое файла custom_api_adapter.go (скопируйте ВСЁ):
-
 package adapters
 
 import (
@@ -34,25 +32,25 @@ func NewCustomAPIAdapter(baseURL, apiKey, modelName string) *CustomAPIAdapter {
 	baseURL = strings.TrimSuffix(baseURL, "/")
 
 	capabilities := interfaces.ModelCapabilities{
-		ModelID:     "custom_api",
-		ModelFamily: "custom",
-		DisplayName: "Custom API",
-		Description: "OpenAI-compatible transcription API",
-		Version:     "1.0.0",
+		ModelID:            "custom_api",
+		ModelFamily:        "custom",
+		DisplayName:        "Custom API",
+		Description:        "OpenAI-compatible transcription API",
+		Version:            "1.0.0",
 		SupportedLanguages: []string{"auto"}, // Depends on the actual API
 		SupportedFormats:   []string{"wav", "mp3", "flac", "m4a", "ogg", "webm"},
 		RequiresGPU:        false, // API-based, no local GPU needed
 		MemoryRequirement:  0,     // API-based, no local memory needed
 		Features: map[string]bool{
-			"timestamps":          true,
-			"word_level":          false, // May not be supported by all APIs
-			"language_detection":  true,
+			"timestamps":         true,
+			"word_level":         false, // May not be supported by all APIs
+			"language_detection": true,
 		},
 		Metadata: map[string]string{
-			"engine":      "custom_api",
-			"api_type":    "openai_compatible",
-			"base_url":    baseURL,
-			"model_name":  modelName,
+			"engine":     "custom_api",
+			"api_type":   "openai_compatible",
+			"base_url":   baseURL,
+			"model_name": modelName,
 		},
 	}
 
