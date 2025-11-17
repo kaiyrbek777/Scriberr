@@ -31,6 +31,9 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { Info } from "lucide-react";
 
 export interface WhisperXParams {
+  // STT Model ID (from database)
+  stt_model_id?: number;
+
   // Model family (whisper or nvidia)
   model_family: string;
   
@@ -356,6 +359,8 @@ export const TranscriptionConfigDialog = memo(function TranscriptionConfigDialog
   const [params, setParams] = useState<WhisperXParams>(DEFAULT_PARAMS);
   const [profileName, setProfileName] = useState("");
   const [profileDescription, setProfileDescription] = useState("");
+  const [sttModels, setSTTModels] = useState<Array<{id: number; name: string; type: string; is_active: boolean}>>([]);
+  const [loadingModels, setLoadingModels] = useState(false);
 
   // Reset to defaults or initial values when dialog opens
   useEffect(() => {
@@ -371,6 +376,33 @@ export const TranscriptionConfigDialog = memo(function TranscriptionConfigDialog
       setProfileDescription(initialDescription);
     }
   }, [open, initialParams, initialName, initialDescription, isMultiTrack]);
+
+  // Load STT models
+  useEffect(() => {
+    const loadSTTModels = async () => {
+      setLoadingModels(true);
+      try {
+        const token = localStorage.getItem("auth_token");
+        const response = await fetch("/api/v1/stt-models", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setSTTModels(data.filter((model: any) => model.is_active));
+        }
+      } catch (error) {
+        console.error("Failed to load STT models:", error);
+      } finally {
+        setLoadingModels(false);
+      }
+    };
+
+    if (open) {
+      loadSTTModels();
+    }
+  }, [open]);
 
   const updateParam = <K extends keyof WhisperXParams>(
     key: K,
@@ -436,11 +468,53 @@ export const TranscriptionConfigDialog = memo(function TranscriptionConfigDialog
           </div>
         )}
 
+        {/* STT Model Selection */}
         <div className="mb-6 space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="modelFamily" className="text-gray-700 dark:text-gray-300 font-medium">
-              Model Family
+            <Label htmlFor="sttModel" className="text-gray-700 dark:text-gray-300 font-medium">
+              STT Model
             </Label>
+            <Select
+              value={params.stt_model_id?.toString() || "default"}
+              onValueChange={(value) => {
+                if (value === "default") {
+                  updateParam('stt_model_id', undefined);
+                } else {
+                  updateParam('stt_model_id', parseInt(value));
+                }
+              }}
+            >
+              <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
+                <SelectValue placeholder="Use default (Legacy)" />
+              </SelectTrigger>
+              <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                <SelectItem value="default" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-700">
+                  Use Legacy Model Family
+                </SelectItem>
+                {sttModels.map((model) => (
+                  <SelectItem
+                    key={model.id}
+                    value={model.id.toString()}
+                    className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-700"
+                  >
+                    {model.name} ({model.type})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {loadingModels && (
+              <p className="text-xs text-gray-500 dark:text-gray-400">Loading STT models...</p>
+            )}
+          </div>
+        </div>
+
+        {/* Only show legacy Model Family selector if no STT model selected */}
+        {!params.stt_model_id && (
+          <div className="mb-6 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="modelFamily" className="text-gray-700 dark:text-gray-300 font-medium">
+                Model Family (Legacy)
+              </Label>
             <Select
               value={params.model_family}
               onValueChange={(value) => updateParam('model_family', value)}
@@ -462,8 +536,24 @@ export const TranscriptionConfigDialog = memo(function TranscriptionConfigDialog
             </Select>
           </div>
         </div>
+        )}
 
-        {params.model_family === "nvidia_parakeet" ? (
+        {/* Show simplified UI for Custom API models */}
+        {params.stt_model_id && sttModels.find(m => m.id === params.stt_model_id && m.type === 'custom') ? (
+          <div className="space-y-4">
+            <div className="p-4 border border-green-200 dark:border-green-700 rounded-lg bg-green-50 dark:bg-green-900/20">
+              <div className="flex items-center gap-2">
+                <Info className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <span className="text-sm font-medium text-green-800 dark:text-green-200">Custom API Model Selected</span>
+              </div>
+              <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                Configuration is managed on the API side. No additional settings required.
+              </p>
+            </div>
+          </div>
+        ) : null}
+
+        {!params.stt_model_id && params.model_family === "nvidia_parakeet" ? (
           <div className="space-y-6">
 
             {/* Multi-track status for Parakeet */}
@@ -725,7 +815,7 @@ export const TranscriptionConfigDialog = memo(function TranscriptionConfigDialog
             </div>
             )}
           </div>
-        ) : params.model_family === "nvidia_canary" ? (
+        ) : !params.stt_model_id && params.model_family === "nvidia_canary" ? (
           <div className="space-y-6">
 
             {/* Multi-track status for Canary */}
@@ -922,7 +1012,7 @@ export const TranscriptionConfigDialog = memo(function TranscriptionConfigDialog
             </div>
             )}
           </div>
-        ) : (
+        ) : !params.stt_model_id ? (
           <Tabs defaultValue="basic" className="w-full">
           <TabsList className={`grid w-full items-center h-auto bg-gray-100 dark:bg-gray-800 p-1 rounded-lg ${isMultiTrack ? 'grid-cols-3' : 'grid-cols-4'}`}>
             <TabsTrigger value="basic" className="h-9 py-1.5 data-[state=active]:bg-white data-[state=active]:dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs sm:text-sm">Basic</TabsTrigger>
@@ -1734,7 +1824,7 @@ export const TranscriptionConfigDialog = memo(function TranscriptionConfigDialog
           </TabsContent>
           )}
         </Tabs>
-        )}
+        ) : null}
 
         <DialogFooter className="gap-2 border-t border-gray-200 dark:border-gray-700 pt-3 sm:pt-6 mt-4 sm:mt-8">
           <Button variant="outline" onClick={() => onOpenChange(false)} className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
