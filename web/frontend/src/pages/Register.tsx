@@ -68,7 +68,7 @@ export function Register({ onRegister }: RegisterProps) {
 				body: JSON.stringify({
 					username,
 					password,
-					confirmPassword,
+					confirm_password: confirmPassword,
 				}),
 			});
 
