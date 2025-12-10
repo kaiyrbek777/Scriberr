@@ -123,8 +123,21 @@ func createDefaultUsers() error {
 
 	// Only create default users if database is empty
 	if userCount > 0 {
+		fmt.Printf("INFO: Skipping default user creation - %d user(s) already exist\n", userCount)
+
+		// Log existing usernames for debugging
+		var existingUsers []models.User
+		if err := DB.Select("username", "role").Find(&existingUsers).Error; err == nil {
+			fmt.Println("INFO: Existing users:")
+			for _, u := range existingUsers {
+				fmt.Printf("  - %s (role: %s)\n", u.Username, u.Role)
+			}
+		}
+
 		return nil
 	}
+
+	fmt.Println("INFO: Creating default admin and user accounts...")
 
 	// Hash passwords (using cost 4 for faster development login)
 	adminPasswordHash, err := bcrypt.GenerateFromPassword([]byte("admin"), 4)
@@ -156,6 +169,10 @@ func createDefaultUsers() error {
 	if err := DB.Create(&regularUser).Error; err != nil {
 		return fmt.Errorf("failed to create regular user: %v", err)
 	}
+
+	fmt.Println("INFO: Default users created successfully:")
+	fmt.Println("  - admin/admin (role: admin)")
+	fmt.Println("  - user/user (role: user)")
 
 	return nil
 }
