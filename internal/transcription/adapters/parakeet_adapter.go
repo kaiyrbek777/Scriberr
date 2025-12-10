@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"scriberr/internal/transcription/interfaces"
-	"scriberr/internal/transcription/registry"
 	"scriberr/pkg/logger"
 )
 
