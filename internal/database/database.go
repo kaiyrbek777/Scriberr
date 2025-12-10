@@ -9,6 +9,7 @@ import (
 	"scriberr/internal/models"
 
 	"github.com/glebarez/sqlite"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -103,6 +104,57 @@ func Initialize(dbPath string) error {
 		if err := DB.Create(&defaultModel).Error; err != nil {
 			return fmt.Errorf("failed to create default STT model: %v", err)
 		}
+	}
+
+	// Create default users if no users exist
+	if err := createDefaultUsers(); err != nil {
+		return fmt.Errorf("failed to create default users: %v", err)
+	}
+
+	return nil
+}
+
+// createDefaultUsers creates default admin and user accounts if no users exist
+func createDefaultUsers() error {
+	var userCount int64
+	if err := DB.Model(&models.User{}).Count(&userCount).Error; err != nil {
+		return fmt.Errorf("failed to count users: %v", err)
+	}
+
+	// Only create default users if database is empty
+	if userCount > 0 {
+		return nil
+	}
+
+	// Hash passwords
+	adminPasswordHash, err := bcrypt.GenerateFromPassword([]byte("admin"), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("failed to hash admin password: %v", err)
+	}
+
+	userPasswordHash, err := bcrypt.GenerateFromPassword([]byte("user"), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("failed to hash user password: %v", err)
+	}
+
+	// Create admin user
+	adminUser := models.User{
+		Username: "admin",
+		Password: string(adminPasswordHash),
+		Role:     "admin",
+	}
+	if err := DB.Create(&adminUser).Error; err != nil {
+		return fmt.Errorf("failed to create admin user: %v", err)
+	}
+
+	// Create regular user
+	regularUser := models.User{
+		Username: "user",
+		Password: string(userPasswordHash),
+		Role:     "user",
+	}
+	if err := DB.Create(&regularUser).Error; err != nil {
+		return fmt.Errorf("failed to create regular user: %v", err)
 	}
 
 	return nil
