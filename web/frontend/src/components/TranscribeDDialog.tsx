@@ -277,26 +277,25 @@ export function TranscribeDDialog({
                 </SelectContent>
               </Select>
             )}
-          </div>
 
-          {/* Show selected profile details */}
-          {selectedProfileId && !profilesLoading && (
-            <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
-              <div className="text-sm">
-                <span className="font-medium text-gray-700 dark:text-gray-300">Selected: </span>
-                <span className="text-gray-600 dark:text-gray-400">{getSelectedProfileName()}</span>
+            {/* Show selected profile details */}
+            {selectedProfileId && !profilesLoading && (
+              <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
+                <div className="text-sm">
+                  <span className="font-medium text-gray-700 dark:text-gray-300">Selected: </span>
+                  <span className="text-gray-600 dark:text-gray-400">{getSelectedProfileName()}</span>
+                </div>
+                {(() => {
+                  const profile = profiles.find(p => p.id === selectedProfileId);
+                  return profile?.description ? (
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {profile.description}
+                    </div>
+                  ) : null;
+                })()}
               </div>
-              {(() => {
-                const profile = profiles.find(p => p.id === selectedProfileId);
-                return profile?.description ? (
-                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {profile.description}
-                  </div>
-                ) : null;
-              })()}
-            </div>
-          )}
-            </div>
+            )}
+          </div>
           ) : (
             // User view: show STT models
             <div className="space-y-2">
