@@ -43,18 +43,58 @@ export function TranscribeDDialog({
   onStartTranscription,
   loading = false,
 }: TranscribeDDialogProps) {
-  const { getAuthHeaders } = useAuth();
+  const { getAuthHeaders, userRole } = useAuth();
   const [profiles, setProfiles] = useState<TranscriptionProfile[]>([]);
   const [selectedProfileId, setSelectedProfileId] = useState<string>("");
   const [profilesLoading, setProfilesLoading] = useState(false);
   const [defaultProfile, setDefaultProfile] = useState<TranscriptionProfile | null>(null);
 
-  // Fetch profiles when dialog opens
+  // State for STT models (for regular users)
+  const [sttModels, setSTTModels] = useState<Array<{id: number; name: string; type: string; is_active: boolean}>>([]);
+  const [selectedSTTModelId, setSelectedSTTModelId] = useState<number | null>(null);
+  const [sttModelsLoading, setSTTModelsLoading] = useState(false);
+
+  // Fetch profiles or STT models when dialog opens
   useEffect(() => {
     if (open) {
-      fetchProfiles();
+      if (userRole === "admin") {
+        fetchProfiles();
+      } else {
+        fetchSTTModels();
+      }
     }
-  }, [open]);
+  }, [open, userRole]);
+
+  const fetchSTTModels = async () => {
+    try {
+      setSTTModelsLoading(true);
+      const response = await fetch("/api/v1/stt-models", {
+        headers: {
+          ...getAuthHeaders(),
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const activeModels = data.filter((model: any) => model.is_active);
+        setSTTModels(activeModels);
+
+        // Set default STT model
+        const defaultModel = activeModels.find((m: any) => m.is_default);
+        if (defaultModel) {
+          setSelectedSTTModelId(defaultModel.id);
+        } else if (activeModels.length > 0) {
+          setSelectedSTTModelId(activeModels[0].id);
+        }
+      } else {
+        console.error("Failed to fetch STT models");
+      }
+    } catch (error) {
+      console.error("Error fetching STT models:", error);
+    } finally {
+      setSTTModelsLoading(false);
+    }
+  };
 
   const fetchProfiles = async () => {
     try {
@@ -100,11 +140,61 @@ export function TranscribeDDialog({
   };
 
   const handleStartTranscription = () => {
-    if (!selectedProfileId) return;
+    if (userRole === "admin") {
+      // Admin: use selected profile
+      if (!selectedProfileId) return;
+      const selectedProfile = profiles.find(p => p.id === selectedProfileId);
+      if (selectedProfile) {
+        onStartTranscription(selectedProfile.parameters, selectedProfile.id);
+      }
+    } else {
+      // User: use default params + selected STT model
+      if (!selectedSTTModelId) return;
 
-    const selectedProfile = profiles.find(p => p.id === selectedProfileId);
-    if (selectedProfile) {
-      onStartTranscription(selectedProfile.parameters, selectedProfile.id);
+      const defaultParams: WhisperXParams = {
+        stt_model_id: selectedSTTModelId,
+        model_family: "whisper",
+        model: "small",
+        model_cache_only: false,
+        device: "cpu",
+        device_index: 0,
+        batch_size: 8,
+        compute_type: "float32",
+        threads: 0,
+        output_format: "all",
+        verbose: true,
+        task: "transcribe",
+        interpolate_method: "nearest",
+        no_align: false,
+        return_char_alignments: false,
+        vad_method: "pyannote",
+        vad_onset: 0.5,
+        vad_offset: 0.363,
+        chunk_size: 30,
+        diarize: false,
+        diarize_model: "pyannote",
+        speaker_embeddings: false,
+        temperature: 0,
+        best_of: 5,
+        beam_size: 5,
+        patience: 1.0,
+        length_penalty: 1.0,
+        suppress_numerals: false,
+        condition_on_previous_text: false,
+        fp16: true,
+        temperature_increment_on_fallback: 0.2,
+        compression_ratio_threshold: 2.4,
+        logprob_threshold: -1.0,
+        no_speech_threshold: 0.6,
+        highlight_words: false,
+        segment_resolution: "sentence",
+        print_progress: false,
+        attention_context_left: 256,
+        attention_context_right: 256,
+        is_multi_track_enabled: false,
+      };
+
+      onStartTranscription(defaultParams);
     }
   };
 
@@ -125,18 +215,22 @@ export function TranscribeDDialog({
       <DialogContent className="sm:max-w-md bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
         <DialogHeader>
           <DialogTitle className="text-gray-900 dark:text-gray-100">
-            Transcribe with Profile
+            {userRole === "admin" ? "Transcribe with Profile" : "Start Transcription"}
           </DialogTitle>
           <DialogDescription className="text-gray-600 dark:text-gray-400">
-            Choose a saved profile to start transcription with your preferred settings.
+            {userRole === "admin"
+              ? "Choose a saved profile to start transcription with your preferred settings."
+              : "Select an STT model to transcribe your audio."}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="profile" className="text-gray-700 dark:text-gray-300 font-medium">
-              Select Profile
-            </Label>
+          {userRole === "admin" ? (
+            // Admin view: show profiles
+            <div className="space-y-2">
+              <Label htmlFor="profile" className="text-gray-700 dark:text-gray-300 font-medium">
+                Select Profile
+              </Label>
             
             {profilesLoading ? (
               <div className="flex items-center space-x-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
@@ -202,6 +296,49 @@ export function TranscribeDDialog({
               })()}
             </div>
           )}
+            </div>
+          ) : (
+            // User view: show STT models
+            <div className="space-y-2">
+              <Label htmlFor="sttModel" className="text-gray-700 dark:text-gray-300 font-medium">
+                Select STT Model
+              </Label>
+
+              {sttModelsLoading ? (
+                <div className="flex items-center space-x-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
+                  <Loader2 className="h-4 w-4 animate-spin text-gray-500 dark:text-gray-400" />
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Loading STT models...</span>
+                </div>
+              ) : sttModels.length === 0 ? (
+                <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">No STT models available</span>
+                </div>
+              ) : (
+                <Select
+                  value={selectedSTTModelId?.toString() || ""}
+                  onValueChange={(value) => setSelectedSTTModelId(parseInt(value))}
+                >
+                  <SelectTrigger className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                    <SelectValue placeholder="Choose an STT model..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 max-h-60">
+                    {sttModels.map((model) => (
+                      <SelectItem
+                        key={model.id}
+                        value={model.id.toString()}
+                        className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-700"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <span>{model.name}</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">({model.type})</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          )}
         </div>
 
         <DialogFooter className="gap-2">
@@ -212,9 +349,15 @@ export function TranscribeDDialog({
           >
             Cancel
           </Button>
-          <Button 
-            onClick={handleStartTranscription} 
-            disabled={loading || !selectedProfileId || profilesLoading || profiles.length === 0}
+          <Button
+            onClick={handleStartTranscription}
+            disabled={
+              loading ||
+              (userRole === "admin"
+                ? (!selectedProfileId || profilesLoading || profiles.length === 0)
+                : (!selectedSTTModelId || sttModelsLoading || sttModels.length === 0)
+              )
+            }
             className="bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-800 text-white min-w-[120px]"
           >
             {loading ? (
