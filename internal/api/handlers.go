@@ -1727,36 +1727,48 @@ func (h *Handler) GetAudioFile(c *gin.Context) {
 // @Failure 401 {object} map[string]string
 // @Router /api/v1/auth/login [post]
 func (h *Handler) Login(c *gin.Context) {
+	startTime := time.Now()
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
+	// Find user
+	dbStart := time.Now()
 	var user models.User
 	if err := database.DB.Where("username = ?", req.Username).First(&user).Error; err != nil {
 		logger.AuthEvent("login", req.Username, c.ClientIP(), false, "user_not_found")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
 	}
+	logger.Debug("Login: DB query", "username", req.Username, "duration_ms", time.Since(dbStart).Milliseconds())
 
+	// Check password
+	pwStart := time.Now()
 	if !auth.CheckPassword(req.Password, user.Password) {
 		logger.AuthEvent("login", req.Username, c.ClientIP(), false, "invalid_password")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
 	}
+	logger.Debug("Login: Password check", "username", req.Username, "duration_ms", time.Since(pwStart).Milliseconds())
 
+	// Generate token
+	tokenStart := time.Now()
 	token, err := h.authService.GenerateToken(&user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 		return
 	}
+	logger.Debug("Login: Token generation", "username", req.Username, "duration_ms", time.Since(tokenStart).Milliseconds())
 
 	// Set refresh token cookie
+	refreshStart := time.Now()
 	if err := h.issueRefreshToken(c, user.ID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create session"})
 		return
 	}
+	logger.Debug("Login: Refresh token", "username", req.Username, "duration_ms", time.Since(refreshStart).Milliseconds())
 
 	response := LoginResponse{Token: token}
 	response.User.ID = user.ID
@@ -1764,6 +1776,7 @@ func (h *Handler) Login(c *gin.Context) {
 	response.User.Role = user.Role
 
 	logger.AuthEvent("login", req.Username, c.ClientIP(), true)
+	logger.Debug("Login: Total time", "username", req.Username, "duration_ms", time.Since(startTime).Milliseconds())
 	c.JSON(http.StatusOK, response)
 }
 

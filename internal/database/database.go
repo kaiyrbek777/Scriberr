@@ -126,13 +126,13 @@ func createDefaultUsers() error {
 		return nil
 	}
 
-	// Hash passwords
-	adminPasswordHash, err := bcrypt.GenerateFromPassword([]byte("admin"), bcrypt.DefaultCost)
+	// Hash passwords (using cost 4 for faster development login)
+	adminPasswordHash, err := bcrypt.GenerateFromPassword([]byte("admin"), 4)
 	if err != nil {
 		return fmt.Errorf("failed to hash admin password: %v", err)
 	}
 
-	userPasswordHash, err := bcrypt.GenerateFromPassword([]byte("user"), bcrypt.DefaultCost)
+	userPasswordHash, err := bcrypt.GenerateFromPassword([]byte("user"), 4)
 	if err != nil {
 		return fmt.Errorf("failed to hash user password: %v", err)
 	}
