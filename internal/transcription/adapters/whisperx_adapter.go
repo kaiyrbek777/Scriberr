@@ -602,5 +602,7 @@ func (w *WhisperXAdapter) GetEstimatedProcessingTime(input interfaces.AudioInput
 
 // init registers the WhisperX adapter
 func init() {
-	registry.RegisterTranscriptionAdapter("whisperx", NewWhisperXAdapter())
+	// Disabled automatic WhisperX registration for faster startup during development
+	// WhisperX will be registered dynamically when needed
+	// registry.RegisterTranscriptionAdapter("whisperx", NewWhisperXAdapter())
 }

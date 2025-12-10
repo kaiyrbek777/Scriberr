@@ -875,5 +875,6 @@ func (s *SortformerAdapter) GetEstimatedProcessingTime(input interfaces.AudioInp
 
 // init registers the Sortformer adapter
 func init() {
-	registry.RegisterDiarizationAdapter("sortformer", NewSortformerAdapter())
+	// Disabled automatic Sortformer registration for faster startup during development
+	// registry.RegisterDiarizationAdapter("sortformer", NewSortformerAdapter())
 }

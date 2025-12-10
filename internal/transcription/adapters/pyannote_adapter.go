@@ -799,5 +799,6 @@ func (p *PyAnnoteAdapter) GetEstimatedProcessingTime(input interfaces.AudioInput
 
 // init registers the PyAnnote adapter
 func init() {
-	registry.RegisterDiarizationAdapter("pyannote", NewPyAnnoteAdapter())
+	// Disabled automatic PyAnnote registration for faster startup during development
+	// registry.RegisterDiarizationAdapter("pyannote", NewPyAnnoteAdapter())
 }

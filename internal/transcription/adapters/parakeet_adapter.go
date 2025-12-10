@@ -618,5 +618,6 @@ func (p *ParakeetAdapter) GetEstimatedProcessingTime(input interfaces.AudioInput
 
 // init registers the Parakeet adapter
 func init() {
-	registry.RegisterTranscriptionAdapter("parakeet", NewParakeetAdapter())
+	// Disabled automatic Parakeet registration for faster startup during development
+	// registry.RegisterTranscriptionAdapter("parakeet", NewParakeetAdapter())
 }

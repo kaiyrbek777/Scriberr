@@ -703,5 +703,6 @@ func (c *CanaryAdapter) GetEstimatedProcessingTime(input interfaces.AudioInput) 
 
 // init registers the Canary adapter
 func init() {
-	registry.RegisterTranscriptionAdapter("canary", NewCanaryAdapter())
+	// Disabled automatic Canary registration for faster startup during development
+	// registry.RegisterTranscriptionAdapter("canary", NewCanaryAdapter())
 }
