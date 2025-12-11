@@ -18,25 +18,6 @@ import {
     ChevronsRight,
     MessageCircle,
 } from "lucide-react";
-
-// Custom SVG icons for transcription actions
-const QuickTranscribeIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M12 2L15.09 8.26L22 9L17 14L18.18 21L12 17.77L5.82 21L7 14L2 9L8.91 8.26L12 2Z" />
-    <path d="M8 12h8" strokeWidth="1.5" />
-    <path d="M8 16h6" strokeWidth="1.5" />
-  </svg>
-);
-
-const AdvancedTranscribeIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="3" />
-    <path d="M12 1v6m0 6v6" />
-    <path d="m21 12-6 0m-6 0-6 0" />
-    <path d="m16.24 7.76-4.24 4.24m-4.24 4.24-1.41-1.41" />
-    <path d="M16.24 16.24 12 12m-4.24-4.24L6.34 6.34" />
-  </svg>
-);
 import {
 	Popover,
 	PopoverContent,
@@ -803,7 +784,19 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 				cell: ({ row }) => {
 					const file = row.original;
 					return (
-						<div className="text-center">
+						<div className="flex items-center justify-center gap-1">
+							{/* Primary Transcribe Button */}
+							<Button
+								variant="default"
+								size="sm"
+								className="h-8 px-3 text-sm bg-blue-600 hover:bg-blue-700 text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+								disabled={!canTranscribe(file)}
+								onClick={() => handleTranscribeD(file.id)}
+							>
+								Transcribe
+							</Button>
+
+							{/* Menu for other actions */}
 							<Popover
 								open={openPopovers[file.id] || false}
 								onOpenChange={(open) =>
@@ -813,15 +806,15 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 									}))
 								}
 							>
-									<PopoverTrigger asChild>
-										<Button
-											variant="ghost"
-											size="sm"
-											className="h-8 w-8 sm:h-9 sm:w-9 p-0 cursor-pointer"
-										>
-											<MoreVertical className="h-5 w-5" />
-										</Button>
-									</PopoverTrigger>
+								<PopoverTrigger asChild>
+									<Button
+										variant="ghost"
+										size="sm"
+										className="h-8 w-8 p-0 cursor-pointer"
+									>
+										<MoreVertical className="h-4 w-4" />
+									</Button>
+								</PopoverTrigger>
 								<PopoverContent className="w-40 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-600 p-1">
 									<div className="space-y-1">
 										{file.status === "completed" && (
@@ -838,28 +831,7 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 												Open Chat
 											</Button>
 										)}
-										<Button
-											variant="ghost"
-											size="sm"
-											className="w-full justify-start h-8 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer disabled:cursor-not-allowed"
-											disabled={!canTranscribe(file)}
-											onClick={() => handleTranscribeD(file.id)}
-										>
-											<QuickTranscribeIcon className="mr-2 h-4 w-4" />
-											Transcribe
-										</Button>
-										
-										<Button
-											variant="ghost"
-											size="sm"
-											className="w-full justify-start h-8 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer disabled:cursor-not-allowed"
-											disabled={!canTranscribe(file)}
-											onClick={() => handleTranscribe(file.id)}
-										>
-											<AdvancedTranscribeIcon className="mr-2 h-4 w-4" />
-											Transcribe+
-										</Button>
-										
+
 										{file.status === "processing" && (
 											<Button
 												variant="ghost"
@@ -884,7 +856,7 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 												)}
 											</Button>
 										)}
-										
+
 										<Button
 											variant="ghost"
 											size="sm"
@@ -1011,9 +983,9 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 											className="bg-gray-50 dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border-b border-gray-100 dark:border-gray-900"
 										>
 											{headerGroup.headers.map((header) => (
-												<TableHead 
+												<TableHead
 													key={header.id}
-													className={`text-gray-700 dark:text-gray-300 ${header.column.id === 'created_at' ? 'hidden sm:table-cell' : ''} ${header.column.id === 'title' ? 'w-full' : ''} ${header.column.id === 'status' ? 'w-10 text-center' : ''} ${header.column.id === 'actions' ? 'w-10 text-center' : ''}`}
+													className={`text-gray-700 dark:text-gray-300 ${header.column.id === 'created_at' ? 'hidden sm:table-cell' : ''} ${header.column.id === 'title' ? 'w-full' : ''} ${header.column.id === 'status' ? 'w-10 text-center' : ''} ${header.column.id === 'actions' ? 'w-32 text-center' : ''}`}
 												>
 													{header.isPlaceholder
 														? null
@@ -1040,7 +1012,7 @@ export const AudioFilesTable = memo(function AudioFilesTable({
 															${cell.column.id === 'created_at' ? 'hidden sm:table-cell' : ''}
 															${cell.column.id === 'title' ? 'whitespace-normal break-words pr-1 sm:pr-2' : ''}
 															${cell.column.id === 'status' ? 'w-[36px] px-1 text-center' : ''}
-															${cell.column.id === 'actions' ? 'w-[36px] px-1 text-center' : ''}
+															${cell.column.id === 'actions' ? 'px-2 text-center' : ''}
 														`}
 													>
 														{flexRender(
